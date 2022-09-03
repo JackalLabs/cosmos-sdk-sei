@@ -22,6 +22,10 @@ const (
 var (
 	// FeeAllowanceKeyPrefix is the set of the kvstore for fee allowance data
 	FeeAllowanceKeyPrefix = []byte{0x00}
+
+	FeeAllowanceQueueKeyPrefix = []byte{0x01}
+
+	FreeMessageKeyPrefix = []byte{0x02}
 )
 
 // FeeAllowanceKey is the canonical key to store a grant from granter to grantee
