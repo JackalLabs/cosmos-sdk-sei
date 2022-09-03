@@ -107,6 +107,9 @@ type Signer interface {
 
 	// SignByAddress sign byte messages with a user key providing the address.
 	SignByAddress(address sdk.Address, msg []byte) ([]byte, types.PubKey, error)
+
+	Encrypt(pkey []byte, msg []byte) ([]byte, error)
+	Decrypt(uid string, msg []byte) ([]byte, types.PubKey, error)
 }
 
 // Importer is implemented by key stores that support import of public and private keys.

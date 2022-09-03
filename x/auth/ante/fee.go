@@ -109,16 +109,55 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", deductFeesFrom)
 	}
 
+	msgs := tx.GetMsgs()
+	freeMessages := dfd.feegrantKeeper.GetFreeMessages(ctx)
+
+	if len(freeMessages) > 0 {
+		if len(msgs) == 1 {
+
+			run := func() bool {
+				for _, msg := range msgs {
+
+					url := sdk.MsgTypeURL(msg)
+					ctx.Logger().Info(fmt.Sprintf("MSG : %v", url))
+
+					for _, s := range freeMessages {
+						ctx.Logger().Info(fmt.Sprintf("FREES : %v", s))
+
+						if url == s {
+							return true
+						}
+					}
+				}
+				return false
+			}
+
+			if run() {
+
+				for _, coin := range fee {
+					coin.Amount = sdk.NewInt(0)
+
+				}
+
+				fee = sdk.NewCoins(sdk.NewCoin(fee.GetDenomByIndex(0), sdk.NewInt(0)))
+
+				ctx.Logger().Debug(fmt.Sprintf("Final fee: %v", fee))
+
+			}
+		}
+
+	}
+
 	// deduct the fees
-	if !feeTx.GetFee().IsZero() {
-		err = DeductFees(dfd.bankKeeper, ctx, deductFeesFromAcc, feeTx.GetFee())
+	if !fee.IsZero() {
+		err = DeductFees(dfd.bankKeeper, ctx, deductFeesFromAcc, fee)
 		if err != nil {
 			return ctx, err
 		}
 	}
 
 	events := sdk.Events{sdk.NewEvent(sdk.EventTypeTx,
-		sdk.NewAttribute(sdk.AttributeKeyFee, feeTx.GetFee().String()),
+		sdk.NewAttribute(sdk.AttributeKeyFee, fee.String()),
 	)}
 	ctx.EventManager().EmitEvents(events)
 
