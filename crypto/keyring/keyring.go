@@ -403,60 +403,6 @@ func (ks keystore) Decrypt(uid string, msg []byte) ([]byte, types.PubKey, error)
 	return sig, priv.PubKey(), nil
 }
 
-func (ks keystore) Encrypt(pkey []byte, msg []byte) ([]byte, error) {
-
-	pubkey, err := ecies.NewPublicKeyFromBytes(pkey)
-	if err != nil {
-		return nil, err
-	}
-
-	sig, err := ecies.Encrypt(pubkey, msg)
-	if err != nil {
-		return nil, err
-	}
-
-	return sig, nil
-}
-
-func (ks keystore) Decrypt(uid string, msg []byte) ([]byte, types.PubKey, error) {
-	info, err := ks.Key(uid)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var priv types.PrivKey
-
-	switch i := info.(type) {
-	case localInfo:
-		if i.PrivKeyArmor == "" {
-			return nil, nil, fmt.Errorf("private key not available")
-		}
-
-		priv, err = legacy.PrivKeyFromBytes([]byte(i.PrivKeyArmor))
-		if err != nil {
-			return nil, nil, err
-		}
-
-	case ledgerInfo:
-		return SignWithLedger(info, msg)
-
-	case offlineInfo, multiInfo:
-		return nil, info.GetPubKey(), errors.New("cannot sign with offline keys")
-	}
-
-	privatekey := ecies.NewPrivateKeyFromBytes(priv.Bytes())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	sig, err := ecies.Decrypt(privatekey, msg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return sig, priv.PubKey(), nil
-}
-
 func (ks keystore) SaveLedgerKey(uid string, algo SignatureAlgo, hrp string, coinType, account, index uint32) (Info, error) {
 	if !ks.options.SupportedAlgosLedger.Contains(algo) {
 		return nil, fmt.Errorf(
